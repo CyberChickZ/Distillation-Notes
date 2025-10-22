@@ -1,2 +1,31 @@
-# Distillation-Notes
-A repository for documenting the results of AI
+# Troubleshooting Notes
+
+感谢 [Taeyoung96](https://github.com/Taeyoung96/Troubleshooting-Note) 的仓库给我的启发。  
+这个项目让我开始系统地记录我在学习、开发、或者使用 AI 过程中遇到的问题和解决方案。
+
+我暂时没有博客，这个仓库就是我的问题记录中心。  
+我希望帮助那些和我相似的**笨蛋**更容易的从网上/AI学习知识
+这里将会逐步记录我**蒸馏**出的知识。
+如果题目很大的话我会单独开一个`.md`
+
+**不定期更新**
+
+---
+
+## 记录格式
+
+```
+
+🔑 Keyword
+问题的关键词或核心主题
+
+⚠️ 问题出现
+问题的场景、背景、出现的现象
+
+✅ 解决
+尝试过的方案、最终的解决方法、验证结果
+
+📚 出处
+参考资料、GPT 对话、官方文档、个人总结
+
+```
