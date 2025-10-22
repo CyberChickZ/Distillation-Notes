@@ -1,4 +1,4 @@
-# Troubleshooting Notes
+# 本质是一个学习日志
 
 感谢 [Taeyoung96](https://github.com/Taeyoung96/Troubleshooting-Note) 的仓库给我的启发。  
 这个项目让我开始系统地记录我在学习、开发、或者使用 AI 过程中遇到的问题和解决方案。
