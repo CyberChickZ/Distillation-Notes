@@ -198,3 +198,116 @@
 
 ---
 
+🔑 **关键词**: Jetson Orin Nano 开机失败、syslog 爆满、Chromium 崩溃、PackageKit 死循环  
+⚠️ **问题出现**:  
+我在 Jetson Orin Nano（2TB SSD）上开发时突然弹窗提示系统磁盘已满。我尝试手动删除 `/var/log` 下的日志文件，但巨型 `syslog` 无法正常删除。没有继续排查，我直接重启，结果系统无法进入桌面，也无法正常启动。
+
+最终发现根因是 **syslog 被疯狂写入到几十 GB**，导致根分区被写满，使得 Jetson 在重启时直接挂掉。
+
+问题由以下已知 Jetson bug 引发：
+
+* Chromium（snap 版本）在 Jetson 上存在 zygote 错误，会 **狂刷 syslog**
+
+* PackageKit / update-notifier 长时间循环查询更新
+
+* 系统默认 logrotate **没有限制 syslog 最大体积**
+
+* Jetson 官方已承认 Chromium + PackageKit 触发崩溃
+
+✅ **解决方案**:  
+
+<details>
+  <summary>1. 在其他 Linux 机器中挂载 Jetson SSD，并找到巨型 syslog</summary>
+
+使用 ls 查看日志：
+
+```
+ls -lh /media/xxx/ROOTFS/var/log
+```
+
+你会看到 `syslog` 体积达到 **20GB～80GB**。
+
+</details>
+
+<details>
+  <summary>2. 删除损坏或过大的 syslog，并重建空日志文件</summary>
+
+```
+sudo rm /media/.../var/log/syslog
+sudo touch /media/.../var/log/syslog
+sudo chown syslog:adm /media/.../var/log/syslog
+sudo chmod 640 /media/.../var/log/syslog
+```
+
+</details>
+
+<details>
+  <summary>3. 修复 logrotate，限制 syslog 最大体积（强制）</summary>
+
+编辑：
+
+```
+/etc/logrotate.d/rsyslog
+```
+
+添加：
+
+```
+size 100M
+rotate 4
+compress
+```
+
+这样 syslog 永远不会无限膨胀。
+
+</details>
+
+<details>
+  <summary>4. 禁用 Jetson 上最常导致 syslog 爆炸的服务（PackageKit / Apport / Update Notifier）</summary>
+
+```
+sudo systemctl disable --now packagekit.service
+sudo systemctl disable --now packagekit-offline-update.service
+sudo systemctl disable --now update-notifier.service
+sudo systemctl disable --now update-notifier-crash.service
+sudo systemctl disable --now apport.service
+sudo systemctl mask apport.service
+```
+
+这些服务会在 Jetson（特别是 Ubuntu 22.04 + JetPack 6）中反复报错并写 log。
+
+</details>
+
+<details>
+  <summary>5. 卸载 Jetson 上已知会引发 syslog 风暴的 Chromium（官方确认）</summary>
+
+```
+sudo snap remove chromium
+```
+
+原因：在 Jetson Orin 上 Chromium 频繁出现：
+
+* `zygote_linux.cc` 错误
+* 权限 setcap 失败
+* 内部 crash → syslog 疯狂刷屏
+
+官方建议 Jetson 使用 Firefox，而不是 Chromium。
+
+</details>
+
+<details>
+  <summary>6. 弹出 SSD、装回 Jetson，系统成功恢复开机</summary>
+
+清理 syslog＋禁用问题服务后，系统顺利恢复正常运行。
+
+</details>
+
+---
+
+📚 **出处**:  
+
+* [syslog 爆炸导致 Ubuntu 系统崩溃](https://askubuntu.com/questions/1103137/huge-syslog-file-crashing-system)
+* [zygote error 导致 Linux syslog 被写满](https://www.reddit.com/r/discordapp/comments/1o55chc/zygote_linuxcc_error_filling_syslog/)
+* [Jetson 官方确认：Chromium 在 Orin 上突然坏掉并写爆系统](https://jetsonhacks.com/2025/07/12/why-chromium-suddenly-broke-on-jetson-orin-and-how-to-bring-it-back/#:~:text=Here%20is%20the%20NVIDIA%20Jetson,set%20capabilities:%20Operation%20not%20permitted)
+
+---
